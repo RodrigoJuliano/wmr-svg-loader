@@ -1,81 +1,23 @@
-const loaderUtils = require('loader-utils');
-const htmlparser = require('htmlparser');
-const defaultOptions = {
-    cssModules: true,
-    mangleIds: true,
-    idPattern: 'svg-[name]-[sha512:hash:base64:7]',
-};
-
-const getOptions = context =>
-    Object.assign({}, defaultOptions, loaderUtils.getOptions(context));
-
-function getIdReplacement(context, options, id) {
-    return loaderUtils
-        .interpolateName(context, options.idPattern, { content: id })
-        .replace(/[^a-zA-Z0-9]/g, '-');
-}
+import fs from "fs";
+import htmlparser from "htmlparser";
+import path from "path";
 
 function assembleNode(context, options, node, root) {
-    if (node.type === 'text') {
+    if (node.type === "text") {
         return JSON.stringify(node.data);
     }
 
     let useAttribs = Object.assign({}, node.attribs || {});
-    if (options.mangleIds) {
-        Object.keys(useAttribs).forEach(key => {
-            // id="foo" - mangle "foo"
-            if (key === 'id') {
-                useAttribs[key] = getIdReplacement(
-                    context,
-                    options,
-                    useAttribs[key]
-                );
-                return;
-            }
-
-            // xlink:href="#foo" or anything href="#foo" -> mangle "foo"
-            if (key.toLowerCase().indexOf('href') !== -1) {
-                useAttribs[key] = useAttribs[key].replace(
-                    /^#([\w-]+)/,
-                    (_, $1) => `#${getIdReplacement(context, options, $1)}`
-                );
-                return;
-            }
-
-            // all other attributes search for url(#foo) -> mangle "foo"
-            if (typeof useAttribs[key] === 'string') {
-                useAttribs[key] = useAttribs[key].replace(
-                    /url\(#([^\)]+)\)/g,
-                    (_, $1) => `url(#${getIdReplacement(context, options, $1)})`
-                );
-                return;
-            }
-        });
-    }
-
     let attribs = JSON.stringify(useAttribs);
 
-    if (options.cssModules) {
-        attribs = attribs.replace(/"class":"([^"]*)"/, (_, $1) => {
-            const classes = $1.split(/\s+/).map(className => {
-                if (!className) {
-                    return '';
-                }
-                const string = JSON.stringify(className);
-                return `styles && styles[${string}] || ${string}`;
-            });
-            return `"class":[${classes.join(',')}].join(' ')`;
-        });
-    }
-
-    let children = '[]';
+    let children = "[]";
     if (node.children) {
         children =
-            '[' +
+            "[" +
             node.children
-                .map(childNode => assembleNode(context, options, childNode))
-                .join(', ') +
-            ']';
+                .map((childNode) => assembleNode(context, options, childNode))
+                .join(", ") +
+            "]";
     }
 
     if (root) {
@@ -85,40 +27,75 @@ function assembleNode(context, options, node, root) {
     return `h('${node.name}', ${attribs}, ${children})`;
 }
 
-module.exports = function(source) {
-    if (this.cacheable) this.cacheable();
+function normalize(path) {
+    if (path.indexOf("\\") == -1) return path;
+    return path.replace(/\\/g, "/");
+}
 
-    const options = getOptions(this);
-    const handler = new htmlparser.DefaultHandler(function(error) {
-        if (error) throw error;
-    });
-    const parser = new htmlparser.Parser(handler);
-    parser.parseComplete(source);
+function svgLoaderPlugin(import_prefix = "svg:") {
+    const IMPORT_PREFIX = import_prefix;
+    const INTERNAL_PREFIX = `\0${IMPORT_PREFIX}`;
+    let options;
+    return {
+        name: "wmr-svg-loader",
+        enforce: "normal",
+        configResolved(config) {
+            options = config;
+        },
+        async resolveId(id, importer) {
+            if (id[0] === "\0" || id[0] === "\b") return;
 
-    const svgNode = handler.dom.find(
-        node => node.type === 'tag' && node.name === 'svg'
-    );
+            if (id.startsWith(IMPORT_PREFIX)) {
+                id = id.slice(IMPORT_PREFIX.length);
+            } else return;
 
-    if (!svgNode) {
-        throw new Error('Could not find svg element');
-    }
+            const resolved = await this.resolve(id, importer, {
+                skipSelf: true,
+            });
+            if (!resolved) return;
 
-    const svg = assembleNode(this, options, svgNode, true);
+            resolved.id = normalize(resolved.id);
+            resolved.id = `${INTERNAL_PREFIX}${resolved.id}`;
+            return resolved;
+        },
 
-    this.callback(
-        null,
-        `
+        async load(id) {
+            if (!id.startsWith(INTERNAL_PREFIX)) return;
 
-import { h } from 'preact';
+            id = id.slice(INTERNAL_PREFIX.length);
 
-export default function (props) {
-    var styles = props.styles;
-    var rest = Object.assign({}, props);
-    delete rest.styles;
+            id = path.resolve(options.root || ".", id);
 
-    return ${svg};
-};
+            this.addWatchFile(id);
 
-        `
-    );
-};
+            const source = fs.readFileSync(id, { encoding: "utf8" });
+
+            const handler = new htmlparser.DefaultHandler(function (error) {
+                if (error) throw error;
+            });
+            const parser = new htmlparser.Parser(handler);
+            parser.parseComplete(source);
+            const svgNode = handler.dom.find(
+                (node) => node.type === "tag" && node.name === "svg"
+            );
+
+            if (!svgNode) {
+                throw new Error("Could not find svg element");
+            }
+
+            const svg = assembleNode(this, /*options */ null, svgNode, true);
+
+            return `
+                import { h } from 'preact';
+                export default function (props) {
+                    var styles = props.styles;
+                    var rest = Object.assign({}, props);
+                    delete rest.styles;
+                    return ${svg};
+                };
+            `;
+        },
+    };
+}
+
+export default svgLoaderPlugin;

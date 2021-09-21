@@ -1,28 +1,46 @@
-# preact-svg-loader
-Load svg files as preact components.
+# wmr-svg-loader:  WIP
+A port of [preact-svg-loader](https://github.com/VuexLtd/preact-svg-loader) to [wmr](https://wmr.dev/). Load svg files as preact components.
 
 ## Install
-```
-npm i --save-dev preact-svg-loader
-// or
-yarn add --dev preact-svg-loader
+```bash
+npm i --save-dev "https://github.com/RodrigoJuliano/preact-cli-svg-loader"
+# or
+yarn add --dev "https://github.com/RodrigoJuliano/preact-cli-svg-loader"
 ```
 
 ## Usage
 
-Add the loader to your webpack config.
+Add the plugin to your `wmr.config.mjs`.
 ```js
-rules: [
-    {
-        test: /\.svg$/,
-        use: ['preact-svg-loader'],
-    }
-]
+import { defineConfig } from 'wmr';
+import svgLoaderPlugin from 'wmr-svg-loader';
+
+export default defineConfig({
+  plugins: [svgLoaderPlugin()],
+});
 ```
 
-In your code, simply require the svg as if it were a component.
+In your code, use the prefix `svg:` to import the svg as a component.
 ```jsx
-import Logo from './logo.svg';
+import Logo from 'svg:./logo.svg';
 
 () => <Logo />
+```
+
+The prefix is customizable.
+```js
+plugins: [svgLoaderPlugin('myprefix:')],
+```
+
+You can also use in combination with ´lazy´ to enable code spliting, generating a js file to each svg.
+```jsx
+import { lazy, ErrorBoundary } from 'preact-iso';
+
+const Logo = lazy(() => import('svg:./logo.svg'));
+
+() => (
+    <ErrorBoundary>
+        <Logo />
+    <ErrorBoundary/>
+);
 ```
