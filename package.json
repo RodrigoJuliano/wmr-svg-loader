@@ -1,24 +1,37 @@
 {
     "name": "wmr-svg-loader",
-    "version": "0.1.0",
-    "description": "Load svg files as preact components.",
-    "main": "src/index.js",
-    "repository": "https://github.com/VuexLtd/preact-svg-loader",
-    "author": "James Birtles <james.birtles@vuex.io>",
+    "version": "1.0.0",
+    "description": "wmr plugin to load svg files as preact components.",
+    "main": "dist/index.js",
+    "repository": "github:RodrigoJuliano/wmr-svg-loader",
+    "contributors": [
+        "rodrigojuliano",
+        "James Birtles <james.birtles@vuex.io>"
+    ],
     "license": "MIT",
-    "type": "module",
     "scripts": {
+        "build": "rollup -c",
         "test": "mocha",
         "lint": "eslint src test .eslintrc.js --ignore-pattern '!.eslintrc.js'",
         "pretest": "npm run lint",
-        "prepublishOnly": "npm run test"
-    },
-    "dependencies": {
-        "htmlparser": "^1.7.7"
+        "prepublishOnly": "yarn build"
     },
     "devDependencies": {
+        "@rollup/plugin-commonjs": "^20.0.0",
+        "@rollup/plugin-node-resolve": "^13.0.5",
         "chai": "^4.1.0",
         "eslint": "^4.2.0",
-        "mocha": "^3.4.2"
+        "htmlparser": "^1.7.7",
+        "mocha": "^3.4.2",
+        "rollup": "^2.57.0",
+        "rollup-plugin-terser": "^7.0.2"
+    },
+    "files": [
+        "dist",
+        "src"
+    ],
+    "prettier": {
+        "singleQuote": true,
+        "tabWidth": 4
     }
 }

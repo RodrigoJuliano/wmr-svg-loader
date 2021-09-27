@@ -1,23 +1,23 @@
-import fs from "fs";
-import htmlparser from "htmlparser";
-import path from "path";
+import fs from 'fs';
+import { DefaultHandler, Parser } from 'htmlparser';
+import path from 'path';
 
 function assembleNode(context, options, node, root) {
-    if (node.type === "text") {
+    if (node.type === 'text') {
         return JSON.stringify(node.data);
     }
 
     let useAttribs = Object.assign({}, node.attribs || {});
     let attribs = JSON.stringify(useAttribs);
 
-    let children = "[]";
+    let children = '[]';
     if (node.children) {
         children =
-            "[" +
+            '[' +
             node.children
                 .map((childNode) => assembleNode(context, options, childNode))
-                .join(", ") +
-            "]";
+                .join(', ') +
+            ']';
     }
 
     if (root) {
@@ -28,22 +28,22 @@ function assembleNode(context, options, node, root) {
 }
 
 function normalize(path) {
-    if (path.indexOf("\\") == -1) return path;
-    return path.replace(/\\/g, "/");
+    if (path.indexOf('\\') == -1) return path;
+    return path.replace(/\\/g, '/');
 }
 
-function svgLoaderPlugin(import_prefix = "svg:") {
-    const IMPORT_PREFIX = import_prefix;
+function svgLoaderPlugin({ importPrefix = 'svg:' } = {}) {
+    const IMPORT_PREFIX = importPrefix;
     const INTERNAL_PREFIX = `\0${IMPORT_PREFIX}`;
     let options;
     return {
-        name: "wmr-svg-loader",
-        enforce: "normal",
+        name: 'wmr-svg-loader',
+        enforce: 'normal',
         configResolved(config) {
             options = config;
         },
         async resolveId(id, importer) {
-            if (id[0] === "\0" || id[0] === "\b") return;
+            if (id[0] === '\0' || id[0] === '\b') return;
 
             if (id.startsWith(IMPORT_PREFIX)) {
                 id = id.slice(IMPORT_PREFIX.length);
@@ -64,23 +64,23 @@ function svgLoaderPlugin(import_prefix = "svg:") {
 
             id = id.slice(INTERNAL_PREFIX.length);
 
-            id = path.resolve(options.root || ".", id);
+            id = path.resolve(options.root || '.', id);
 
             this.addWatchFile(id);
 
-            const source = fs.readFileSync(id, { encoding: "utf8" });
+            const source = fs.readFileSync(id, { encoding: 'utf8' });
 
-            const handler = new htmlparser.DefaultHandler(function (error) {
+            const handler = new DefaultHandler(function (error) {
                 if (error) throw error;
             });
-            const parser = new htmlparser.Parser(handler);
+            const parser = new Parser(handler);
             parser.parseComplete(source);
             const svgNode = handler.dom.find(
-                (node) => node.type === "tag" && node.name === "svg"
+                (node) => node.type === 'tag' && node.name === 'svg'
             );
 
             if (!svgNode) {
-                throw new Error("Could not find svg element");
+                throw new Error('Could not find svg element');
             }
 
             const svg = assembleNode(this, /*options */ null, svgNode, true);

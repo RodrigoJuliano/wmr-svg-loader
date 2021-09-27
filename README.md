@@ -3,9 +3,11 @@ A port of [preact-svg-loader](https://github.com/VuexLtd/preact-svg-loader) to [
 
 ## Install
 ```bash
-npm i --save-dev "https://github.com/RodrigoJuliano/wmr-svg-loader"
-# or
-yarn add --dev "https://github.com/RodrigoJuliano/wmr-svg-loader"
+npm i --save-dev wmr-svg-loader
+```
+or
+```bash
+yarn add --dev wmr-svg-loader
 ```
 
 ## Usage
@@ -29,7 +31,7 @@ import Logo from 'svg:./logo.svg';
 
 The prefix is customizable.
 ```js
-plugins: [svgLoaderPlugin('myprefix:')],
+plugins: [svgLoaderPlugin({ importPrefix: 'myprefix:' })],
 ```
 
 You can also use in combination with `lazy` to enable code spliting, generating a js file to each svg.
