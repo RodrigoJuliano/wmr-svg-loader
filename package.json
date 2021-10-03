@@ -1,6 +1,6 @@
 {
     "name": "wmr-svg-loader",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "wmr plugin to load svg files as preact components.",
     "main": "dist/index.js",
     "repository": "github:RodrigoJuliano/wmr-svg-loader",
@@ -24,7 +24,11 @@
         "htmlparser": "^1.7.7",
         "mocha": "^3.4.2",
         "rollup": "^2.57.0",
-        "rollup-plugin-terser": "^7.0.2"
+        "rollup-plugin-terser": "^7.0.2",
+        "wmr": "^3.7.1"
+    },
+    "peerDependencies": {
+        "wmr": "^3.7.1"
     },
     "files": [
         "dist",
@@ -33,5 +37,6 @@
     "prettier": {
         "singleQuote": true,
         "tabWidth": 4
-    }
+    },
+    "types": "./types.d.ts"
 }
